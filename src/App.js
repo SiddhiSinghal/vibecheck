@@ -1,4 +1,123 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+const achievements = [
+  {
+    id: 'first_quiz',
+    name: 'First Steps',
+    description: 'Completed your first vibe check!',
+    emoji: '🌟',
+    condition: (history) => history.length >= 1
+  },
+  {
+    id: 'quiz_master',
+    name: 'Quiz Master',
+    description: 'Completed 5 vibe checks!',
+    emoji: '🏆',
+    condition: (history) => history.length >= 5
+  },
+  {
+    id: 'vibe_explorer',
+    name: 'Vibe Explorer',
+    description: 'Discovered all 4 different vibe types!',
+    emoji: '🌈',
+    condition: (history) => {
+      const uniqueVibes = new Set(history.map(h => h.primaryVibe));
+      return uniqueVibes.size >= 4;
+    }
+  },
+  {
+    id: 'consistent_vibe',
+    name: 'Consistent Vibe',
+    description: 'Got the same result 3 times in a row!',
+    emoji: '🎯',
+    condition: (history) => {
+      if (history.length < 3) return false;
+      const lastThree = history.slice(0, 3);
+      return lastThree.every(h => h.primaryVibe === lastThree[0].primaryVibe);
+    }
+  },
+  {
+    id: 'balanced_soul',
+    name: 'Balanced Soul',
+    description: 'Achieved a perfectly balanced result (25% each)!',
+    emoji: '⚖️',
+    condition: (history) => {
+      return history.some(h => {
+        const percentages = Object.values(h.percentages);
+        return percentages.every(p => p === 25);
+      });
+    }
+  }
+];
+
+function AchievementModal({ achievements, onClose }) {
+  return (
+    <div className="achievement-overlay">
+      <div className="achievement-modal">
+        <div className="achievement-header">
+          <h3>🏆 Your Achievements</h3>
+          <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+        <div className="achievement-list">
+          {achievements.map((achievement) => (
+            <div key={achievement.id} className="achievement-item earned">
+              <div className="achievement-emoji">{achievement.emoji}</div>
+              <div className="achievement-content">
+                <div className="achievement-name">{achievement.name}</div>
+                <div className="achievement-desc">{achievement.description}</div>
+              </div>
+            </div>
+          ))}
+          {achievements.length === 0 && (
+            <div className="achievement-empty">
+              <span className="achievement-empty-icon">🎯</span>
+              <p>No achievements yet!</p>
+              <p>Complete more quizzes to unlock achievements.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComparisonChart({ results }) {
+  const vibeNames = Object.keys(vibeTypes);
+  const chartData = vibeNames.map(vibe => ({
+    vibe: vibeTypes[vibe].name.replace('The ', ''),
+    ...results.reduce((acc, result, index) => ({
+      ...acc,
+      [`Quiz ${index + 1}`]: result.percentages[vibe] || 0
+    }), {})
+  }));
+
+  return (
+    <div className="comparison-chart">
+      <h4>Vibe Evolution 📈</h4>
+      <div className="chart-container">
+        {chartData.map((data, index) => (
+          <div key={index} className="chart-row">
+            <div className="chart-label">{data.vibe}</div>
+            <div className="chart-bars">
+              {results.map((_, quizIndex) => (
+                <div key={quizIndex} className="chart-bar-container">
+                  <div 
+                    className="chart-bar"
+                    style={{
+                      height: `${data[`Quiz ${quizIndex + 1}`]}%`,
+                      background: vibeTypes[vibeNames[index]].color
+                    }}
+                  ></div>
+                  <span className="chart-value">{data[`Quiz ${quizIndex + 1}`]}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const vibeTypes = {
   chill: {
@@ -6,6 +125,7 @@ const vibeTypes = {
     description: "You bring calm, steady energy to any team. Your thoughtful approach and ability to stay cool under pressure makes you the perfect person to have during crunch time.",
     color: "linear-gradient(90deg, #6dd5ed 0%, #b2b6ff 100%)",
     traits: ["Calm under pressure", "Great listener", "Steady contributor", "Zen master"],
+    emoji: "🧘",
     percentage: 0
   },
   energy: {
@@ -13,6 +133,7 @@ const vibeTypes = {
     description: "You're the spark that ignites the team! Your enthusiasm is contagious, and you turn mundane standup meetings into exciting collaboration sessions.",
     color: "linear-gradient(90deg, #ff7300 0%, #ff5e62 100%)",
     traits: ["High energy", "Team motivator", "Creative problem solver", "Vibe curator"],
+    emoji: "⚡",
     percentage: 0
   },
   thoughtful: {
@@ -20,6 +141,7 @@ const vibeTypes = {
     description: "You're the one who thinks three steps ahead. Your careful planning and attention to detail saves the team from technical debt and architectural nightmares.",
     color: "linear-gradient(90deg, #43e97b 0%, #38f9d7 100%)",
     traits: ["Strategic thinker", "Detail-oriented", "Problem solver", "Long-term vision"],
+    emoji: "🧠",
     percentage: 0
   },
   adventurous: {
@@ -27,6 +149,7 @@ const vibeTypes = {
     description: "You're always pushing boundaries and trying new technologies. Your willingness to experiment leads to breakthrough solutions and keeps the team cutting-edge.",
     color: "linear-gradient(90deg, #b721ff 0%, #21d4fd 100%)",
     traits: ["Innovation driver", "Risk taker", "Tech explorer", "Creative visionary"],
+    emoji: "🚀",
     percentage: 0
   }
 };
@@ -99,6 +222,90 @@ function VibeBar({ label, percent, color }) {
   );
 }
 
+function ShareButton({ result, onShare }) {
+  const shareText = `I just found out I'm ${result.name}! 🌟 ${result.description.slice(0, 100)}... Take the Vibe Check quiz too! ✨`;
+  
+  const handleShare = async (platform) => {
+    const url = window.location.href;
+    let shareUrl = '';
+    
+    switch(platform) {
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`;
+        break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+        break;
+      case 'copy':
+        try {
+          await navigator.clipboard.writeText(`${shareText}\n\n${url}`);
+          onShare('Results copied to clipboard! 📋');
+          return;
+        } catch (err) {
+          onShare('Unable to copy to clipboard');
+          return;
+        }
+      default:
+        return;
+    }
+    
+    window.open(shareUrl, '_blank', 'width=600,height=400');
+    onShare('Thanks for sharing! 🎉');
+  };
+
+  return (
+    <div className="share-container">
+      <div className="share-title">Share Your Vibe! 🌟</div>
+      <div className="share-buttons">
+        <button className="share-btn twitter" onClick={() => handleShare('twitter')}>
+          🐦 Twitter
+        </button>
+        <button className="share-btn linkedin" onClick={() => handleShare('linkedin')}>
+          💼 LinkedIn
+        </button>
+        <button className="share-btn copy" onClick={() => handleShare('copy')}>
+          📋 Copy
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function QuizHistory({ history, onViewResult, onClearHistory }) {
+  if (history.length === 0) {
+    return (
+      <div className="history-empty">
+        <span className="history-empty-icon">📊</span>
+        <p>No quiz history yet!</p>
+        <p>Complete a quiz to see your results here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="history-container">
+      <div className="history-header">
+        <h3>Your Quiz History 📈</h3>
+        <button className="clear-history-btn" onClick={onClearHistory}>
+          Clear All
+        </button>
+      </div>
+      <div className="history-list">
+        {history.map((result, index) => (
+          <div key={index} className="history-item" onClick={() => onViewResult(result)}>
+            <div className="history-item-emoji">{vibeTypes[result.primaryVibe].emoji}</div>
+            <div className="history-item-content">
+              <div className="history-item-name">{result.name}</div>
+              <div className="history-item-date">{result.date}</div>
+            </div>
+            <div className="history-item-arrow">→</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const App = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState([]);
@@ -106,16 +313,81 @@ const App = () => {
   const [showResult, setShowResult] = useState(false);
   const [userName, setUserName] = useState('');
   const [showNameInput, setShowNameInput] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
+  const [quizHistory, setQuizHistory] = useState([]);
+  const [shareMessage, setShareMessage] = useState('');
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
+  const [comparisonResults, setComparisonResults] = useState([]);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [userAchievements, setUserAchievements] = useState([]);
+
+  // Load history from memory on component mount
+  useEffect(() => {
+    const memoryHistory = window.vibeCheckHistory || [];
+    setQuizHistory(memoryHistory);
+    
+    // Load achievements
+    const memoryAchievements = window.vibeCheckAchievements || [];
+    setUserAchievements(memoryAchievements);
+  }, []);
+
+  const saveToHistory = (resultData) => {
+    const historyEntry = {
+      ...resultData,
+      date: new Date().toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      }),
+      timestamp: Date.now()
+    };
+    
+    const newHistory = [historyEntry, ...quizHistory].slice(0, 10); // Keep only last 10 results
+    setQuizHistory(newHistory);
+    
+    // Store in memory instead of localStorage for Claude artifacts
+    window.vibeCheckHistory = newHistory;
+    
+    // Check for new achievements
+    checkAchievements(newHistory);
+  };
+
+  const checkAchievements = (history) => {
+    const newAchievements = [];
+    achievements.forEach(achievement => {
+      if (achievement.condition(history) && !userAchievements.find(a => a.id === achievement.id)) {
+        newAchievements.push(achievement);
+      }
+    });
+    
+    if (newAchievements.length > 0) {
+      const updatedAchievements = [...userAchievements, ...newAchievements];
+      setUserAchievements(updatedAchievements);
+      window.vibeCheckAchievements = updatedAchievements;
+      
+      // Show achievement notification
+      setTimeout(() => {
+        setShareMessage(`🎉 New achievement unlocked: ${newAchievements[0].name}!`);
+        setTimeout(() => setShareMessage(''), 4000);
+      }, 1000);
+    }
+  };
 
   const handleAnswer = (value) => {
-    const newAnswers = [...answers, value];
-    setAnswers(newAnswers);
+    setIsAnimating(true);
+    
+    setTimeout(() => {
+      const newAnswers = [...answers, value];
+      setAnswers(newAnswers);
 
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else {
-      calculateResult(newAnswers);
-    }
+      if (currentQuestion < questions.length - 1) {
+        setCurrentQuestion(currentQuestion + 1);
+      } else {
+        calculateResult(newAnswers);
+      }
+      setIsAnimating(false);
+    }, 300);
   };
 
   const calculateResult = (allAnswers) => {
@@ -143,6 +415,7 @@ const App = () => {
     };
 
     setResult(resultData);
+    saveToHistory(resultData);
     setShowResult(true);
   };
 
@@ -153,18 +426,48 @@ const App = () => {
   };
 
   const resetQuiz = () => {
-    setCurrentQuestion(0);
-    setAnswers([]);
-    setResult(null);
-    setShowResult(false);
-    setShowNameInput(true);
-    setUserName('');
+    setIsAnimating(true);
+    setTimeout(() => {
+      setCurrentQuestion(0);
+      setAnswers([]);
+      setResult(null);
+      setShowResult(false);
+      setShowNameInput(true);
+      setUserName('');
+      setShareMessage('');
+      setIsAnimating(false);
+    }, 300);
+  };
+
+  const viewHistoryResult = (historicalResult) => {
+    setResult(historicalResult);
+    setShowResult(true);
+    setShowHistory(false);
+  };
+
+  const clearHistory = () => {
+    setQuizHistory([]);
+    window.vibeCheckHistory = [];
+    setUserAchievements([]);
+    window.vibeCheckAchievements = [];
+  };
+
+  const showComparisons = () => {
+    if (quizHistory.length >= 2) {
+      setComparisonResults(quizHistory.slice(0, 5)); // Show last 5 results
+      setShowComparison(true);
+    }
+  };
+
+  const handleShare = (message) => {
+    setShareMessage(message);
+    setTimeout(() => setShareMessage(''), 3000);
   };
 
   if (showNameInput) {
     return (
       <div className="plain-bg">
-        <div className="plain-modal">
+        <div className={`plain-modal ${isAnimating ? 'fade-out' : 'fade-in'}`}>
           <div className="plain-title">🌈</div>
           <h1 className="plain-heading">Vibe Check</h1>
           <p className="plain-subheading">Discover your developer personality!</p>
@@ -183,8 +486,80 @@ const App = () => {
           >
             Start Vibe Check ✨
           </button>
+          {quizHistory.length > 0 && (
+            <button
+              onClick={() => setShowHistory(true)}
+              className="plain-btn secondary"
+            >
+              View Quiz History 📊
+            </button>
+          )}
+          {userAchievements.length > 0 && (
+            <button
+              onClick={() => setShowAchievements(true)}
+              className="plain-btn secondary"
+            >
+              View Achievements 🏆
+            </button>
+          )}
         </div>
-        <style>{plainCss}</style>
+        <style>{enhancedCss}</style>
+        {showAchievements && (
+          <AchievementModal 
+            achievements={userAchievements} 
+            onClose={() => setShowAchievements(false)} 
+          />
+        )}
+        {showComparison && (
+          <div className="achievement-overlay">
+            <div className="achievement-modal comparison-modal">
+              <div className="achievement-header">
+                <h3>📊 Vibe Comparison</h3>
+                <button className="close-btn" onClick={() => setShowComparison(false)}>×</button>
+              </div>
+              <ComparisonChart results={comparisonResults} />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (showHistory) {
+    return (
+      <div className="plain-bg">
+        <div className="plain-modal history-modal">
+          <QuizHistory 
+            history={quizHistory}
+            onViewResult={viewHistoryResult}
+            onClearHistory={clearHistory}
+          />
+          <button 
+            className="plain-btn" 
+            onClick={() => setShowHistory(false)}
+            style={{marginTop: 20}}
+          >
+            Back to Quiz
+          </button>
+        </div>
+        <style>{enhancedCss}</style>
+        {showAchievements && (
+          <AchievementModal 
+            achievements={userAchievements} 
+            onClose={() => setShowAchievements(false)} 
+          />
+        )}
+        {showComparison && (
+          <div className="achievement-overlay">
+            <div className="achievement-modal comparison-modal">
+              <div className="achievement-header">
+                <h3>📊 Vibe Comparison</h3>
+                <button className="close-btn" onClick={() => setShowComparison(false)}>×</button>
+              </div>
+              <ComparisonChart results={comparisonResults} />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -192,9 +567,9 @@ const App = () => {
   if (showResult) {
     return (
       <div className="plain-bg">
-        <div className="plain-modal result-modal">
+        <div className={`plain-modal result-modal ${isAnimating ? 'fade-out' : 'fade-in'}`}>
           <div className="plain-icon">
-            <span role="img" aria-label="bolt">⚡️</span>
+            <span role="img" aria-label="result">{vibeTypes[result.primaryVibe].emoji}</span>
           </div>
           <h2 className="plain-hello">
             Hey {result.userName}! <span className="wave">👋</span>
@@ -217,9 +592,59 @@ const App = () => {
               />
             ))}
           </div>
-          <button className="plain-btn" onClick={resetQuiz} style={{marginTop: 24}}>Retake Quiz</button>
+          
+          <ShareButton result={result} onShare={handleShare} />
+          
+          {shareMessage && (
+            <div className="share-message">{shareMessage}</div>
+          )}
+          
+          <div className="result-actions">
+            <button className="plain-btn" onClick={resetQuiz}>
+              Retake Quiz
+            </button>
+            <button 
+              className="plain-btn secondary" 
+              onClick={() => setShowHistory(true)}
+            >
+              View History
+            </button>
+            {quizHistory.length >= 2 && (
+              <button 
+                className="plain-btn secondary" 
+                onClick={showComparisons}
+              >
+                Compare Results 📊
+              </button>
+            )}
+            {userAchievements.length > 0 && (
+              <button 
+                className="plain-btn secondary" 
+                onClick={() => setShowAchievements(true)}
+              >
+                Achievements 🏆
+              </button>
+            )}
+          </div>
         </div>
-        <style>{plainCss}</style>
+        <style>{enhancedCss}</style>
+        {showAchievements && (
+          <AchievementModal 
+            achievements={userAchievements} 
+            onClose={() => setShowAchievements(false)} 
+          />
+        )}
+        {showComparison && (
+          <div className="achievement-overlay">
+            <div className="achievement-modal comparison-modal">
+              <div className="achievement-header">
+                <h3>📊 Vibe Comparison</h3>
+                <button className="close-btn" onClick={() => setShowComparison(false)}>×</button>
+              </div>
+              <ComparisonChart results={comparisonResults} />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -229,7 +654,7 @@ const App = () => {
 
   return (
     <div className="plain-bg">
-      <div className="plain-modal">
+      <div className={`plain-modal ${isAnimating ? 'slide-out' : 'slide-in'}`}>
         <div className="plain-progress-bar">
           <div className="plain-progress" style={{width: `${progress}%`}}></div>
         </div>
@@ -240,6 +665,7 @@ const App = () => {
               key={index}
               onClick={() => handleAnswer(option.value)}
               className="plain-option"
+              disabled={isAnimating}
             >
               <span className="plain-emoji">{option.emoji}</span>
               <span>{option.text}</span>
@@ -248,14 +674,317 @@ const App = () => {
         </div>
         <div className="plain-footer">
           <p>Hey {userName}! Pick the option that vibes with you most 🌟</p>
+          <div className="question-counter">
+            Question {currentQuestion + 1} of {questions.length}
+          </div>
         </div>
       </div>
-      <style>{plainCss}</style>
+      <style>{enhancedCss}</style>
     </div>
   );
 };
 
-const plainCss = `
+
+const enhancedCss = `
+/* Achievement Modal Styles */
+.achievement-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.achievement-modal {
+  background: rgba(30, 20, 60, 0.95);
+  border-radius: 24px;
+  padding: 32px;
+  width: 500px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  position: relative;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.achievement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.achievement-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #ff5e62, #6a82fb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.achievement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.achievement-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.achievement-item.earned {
+  background: linear-gradient(135deg, rgba(255, 94, 98, 0.1), rgba(106, 130, 251, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: achievementGlow 2s ease-in-out infinite alternate;
+}
+
+.achievement-item:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.achievement-emoji {
+  font-size: 2.5rem;
+  margin-right: 16px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.achievement-content {
+  flex: 1;
+}
+
+.achievement-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+.achievement-desc {
+  font-size: 0.95rem;
+  color: #e0d6ff;
+  line-height: 1.4;
+}
+
+.achievement-empty {
+  text-align: center;
+  padding: 40px 20px;
+  opacity: 0.7;
+}
+
+.achievement-empty-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 20px;
+  filter: grayscale(50%);
+}
+
+.achievement-empty p {
+  margin: 8px 0;
+  font-size: 1rem;
+}
+
+.achievement-empty p:first-of-type {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+/* Comparison Chart Styles */
+.comparison-modal {
+  width: 600px;
+  max-width: 95vw;
+}
+
+.comparison-chart {
+  padding: 20px 0;
+}
+
+.comparison-chart h4 {
+  margin: 0 0 24px 0;
+  font-size: 1.3rem;
+  font-weight: bold;
+  text-align: center;
+  color: #fff;
+}
+
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.chart-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.chart-label {
+  min-width: 120px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: right;
+  color: #e0d6ff;
+}
+
+.chart-bars {
+  flex: 1;
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  height: 60px;
+  padding: 8px 0;
+}
+
+.chart-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 60px;
+}
+
+.chart-bar {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 4px;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.chart-value {
+  font-size: 0.8rem;
+  color: #b0b0b0;
+  font-weight: 500;
+  text-align: center;
+  min-height: 16px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes achievementGlow {
+  0% {
+    box-shadow: 0 4px 20px rgba(255, 94, 98, 0.2);
+  }
+  100% {
+    box-shadow: 0 4px 20px rgba(106, 130, 251, 0.3);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .achievement-modal {
+    padding: 24px 20px;
+    margin: 20px;
+  }
+  
+  .comparison-modal {
+    width: 95vw;
+  }
+  
+  .chart-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .chart-label {
+    text-align: left;
+    min-width: auto;
+    font-size: 1rem;
+  }
+  
+  .chart-bars {
+    height: 40px;
+  }
+  
+  .achievement-item {
+    padding: 12px;
+  }
+  
+  .achievement-emoji {
+    font-size: 2rem;
+    margin-right: 12px;
+  }
+  
+  .achievement-name {
+    font-size: 1.1rem;
+  }
+  
+  .achievement-desc {
+    font-size: 0.9rem;
+  }
+}
+
+/* Scrollbar Styling for Achievement Modal */
+.achievement-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.achievement-modal::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.achievement-modal::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.achievement-modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
 .plain-bg {
   min-height: 100vh;
   background: linear-gradient(135deg, #6a82fb 0%, #fc5c7d 100%);
@@ -275,9 +1004,15 @@ const plainCss = `
   text-align: center;
   position: relative;
   margin: 32px 0;
+  transition: all 0.3s ease;
 }
 .result-modal {
   padding-bottom: 32px;
+}
+.history-modal {
+  width: 450px;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 .plain-title {
   font-size: 3rem;
@@ -314,7 +1049,11 @@ const plainCss = `
   font-size: 1.1rem;
   cursor: pointer;
   margin-top: 8px;
-  transition: background 0.2s, transform 0.2s;
+  transition: all 0.2s;
+}
+.plain-btn.secondary {
+  background: rgba(255,255,255,0.1);
+  margin-top: 12px;
 }
 .plain-btn:disabled {
   opacity: 0.5;
@@ -322,7 +1061,10 @@ const plainCss = `
 }
 .plain-btn:hover:not(:disabled) {
   background: linear-gradient(90deg, #6a82fb 0%, #ff5e62 100%);
-  transform: scale(1.04);
+  transform: scale(1.02);
+}
+.plain-btn.secondary:hover {
+  background: rgba(255,255,255,0.15);
 }
 .plain-icon {
   background: linear-gradient(135deg, #ffb347 0%, #ff5e62 100%);
@@ -342,6 +1084,12 @@ const plainCss = `
 }
 .wave {
   font-size: 1.3rem;
+  animation: wave 2s infinite;
+}
+@keyframes wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  75% { transform: rotate(-15deg); }
 }
 .plain-role {
   font-size: 1.2rem;
@@ -437,12 +1185,16 @@ const plainCss = `
   font-size: 1.05rem;
   border: none;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
+  transition: all 0.2s;
   text-align: left;
 }
-.plain-option:hover {
+.plain-option:hover:not(:disabled) {
   background: rgba(255,255,255,0.18);
-  transform: scale(1.03);
+  transform: scale(1.02);
+}
+.plain-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .plain-emoji {
   font-size: 1.5rem;
@@ -451,6 +1203,172 @@ const plainCss = `
   margin-top: 18px;
   color: #e0d6ff;
   font-size: 0.98rem;
+}
+.question-counter {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+/* Share Features */
+.share-container {
+  margin: 24px 0;
+  padding: 20px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 16px;
+}
+.share-title {
+  font-weight: bold;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+.share-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.share-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+.share-btn.twitter {
+  background: #1da1f2;
+  color: white;
+}
+.share-btn.linkedin {
+  background: #0077b5;
+  color: white;
+}
+.share-btn.copy {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+.share-btn:hover {
+  transform: scale(1.05);
+}
+.share-message {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  padding: 8px 16px;
+  border-radius: 8px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+}
+
+/* History Features */
+.history-container {
+  text-align: left;
+}
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.history-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+.clear-history-btn {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: #ff6b6b;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.history-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.history-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.history-item:hover {
+  background: rgba(255,255,255,0.1);
+  transform: translateX(4px);
+}
+.history-item-emoji {
+  font-size: 1.8rem;
+  margin-right: 12px;
+}
+.history-item-content {
+  flex: 1;
+}
+.history-item-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.history-item-date {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+.history-item-arrow {
+  opacity: 0.5;
+  font-size: 1.2rem;
+}
+.history-empty {
+  text-align: center;
+  padding: 40px 20px;
+  opacity: 0.7;
+}
+.history-empty-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 16px;
+}
+.result-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+.result-actions .plain-btn {
+  margin-top: 0;
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+.fade-out {
+  animation: fadeOut 0.3s ease-out;
+}
+.slide-in {
+  animation: slideIn 0.4s ease-out;
+}
+.slide-out {
+  animation: slideOut 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-20px); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-30px); }
 }
 `;
 
