@@ -686,6 +686,305 @@ const App = () => {
 
 
 const enhancedCss = `
+/* Achievement Modal Styles */
+.achievement-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.achievement-modal {
+  background: rgba(30, 20, 60, 0.95);
+  border-radius: 24px;
+  padding: 32px;
+  width: 500px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  position: relative;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.achievement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.achievement-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #ff5e62, #6a82fb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.achievement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.achievement-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.achievement-item.earned {
+  background: linear-gradient(135deg, rgba(255, 94, 98, 0.1), rgba(106, 130, 251, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: achievementGlow 2s ease-in-out infinite alternate;
+}
+
+.achievement-item:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.achievement-emoji {
+  font-size: 2.5rem;
+  margin-right: 16px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.achievement-content {
+  flex: 1;
+}
+
+.achievement-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+.achievement-desc {
+  font-size: 0.95rem;
+  color: #e0d6ff;
+  line-height: 1.4;
+}
+
+.achievement-empty {
+  text-align: center;
+  padding: 40px 20px;
+  opacity: 0.7;
+}
+
+.achievement-empty-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 20px;
+  filter: grayscale(50%);
+}
+
+.achievement-empty p {
+  margin: 8px 0;
+  font-size: 1rem;
+}
+
+.achievement-empty p:first-of-type {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+/* Comparison Chart Styles */
+.comparison-modal {
+  width: 600px;
+  max-width: 95vw;
+}
+
+.comparison-chart {
+  padding: 20px 0;
+}
+
+.comparison-chart h4 {
+  margin: 0 0 24px 0;
+  font-size: 1.3rem;
+  font-weight: bold;
+  text-align: center;
+  color: #fff;
+}
+
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.chart-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.chart-label {
+  min-width: 120px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: right;
+  color: #e0d6ff;
+}
+
+.chart-bars {
+  flex: 1;
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  height: 60px;
+  padding: 8px 0;
+}
+
+.chart-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 60px;
+}
+
+.chart-bar {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 4px;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.chart-value {
+  font-size: 0.8rem;
+  color: #b0b0b0;
+  font-weight: 500;
+  text-align: center;
+  min-height: 16px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes achievementGlow {
+  0% {
+    box-shadow: 0 4px 20px rgba(255, 94, 98, 0.2);
+  }
+  100% {
+    box-shadow: 0 4px 20px rgba(106, 130, 251, 0.3);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .achievement-modal {
+    padding: 24px 20px;
+    margin: 20px;
+  }
+  
+  .comparison-modal {
+    width: 95vw;
+  }
+  
+  .chart-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .chart-label {
+    text-align: left;
+    min-width: auto;
+    font-size: 1rem;
+  }
+  
+  .chart-bars {
+    height: 40px;
+  }
+  
+  .achievement-item {
+    padding: 12px;
+  }
+  
+  .achievement-emoji {
+    font-size: 2rem;
+    margin-right: 12px;
+  }
+  
+  .achievement-name {
+    font-size: 1.1rem;
+  }
+  
+  .achievement-desc {
+    font-size: 0.9rem;
+  }
+}
+
+/* Scrollbar Styling for Achievement Modal */
+.achievement-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.achievement-modal::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.achievement-modal::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.achievement-modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
 .plain-bg {
   min-height: 100vh;
   background: linear-gradient(135deg, #6a82fb 0%, #fc5c7d 100%);
