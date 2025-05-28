@@ -23,8 +23,7 @@ VibeCheck is an interactive web application that helps users discover and explor
 ### Prerequisites
 
 Make sure you have the following installed on your machine:
-- [Node.js](https://nodejs.org/) (version 14.0 or higher)
-- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+- [npm](https://www.npmjs.com/)
 
 ### Installation
 
@@ -37,15 +36,11 @@ Make sure you have the following installed on your machine:
 2. **Install dependencies**
    ```bash
    npm install
-   # or
-   yarn install
    ```
 
 3. **Start the development server**
    ```bash
    npm start
-   # or
-   yarn start
    ```
 
 4. **Open your browser**
@@ -58,17 +53,6 @@ In the project directory, you can run:
 
 ### `npm start`
 Runs the app in development mode. The page will reload when you make changes, and you may also see any lint errors in the console.
-
-### `npm test`
-Launches the test runner in interactive watch mode. See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-Builds the app for production to the `build` folder. It correctly bundles React in production mode and optimizes the build for the best performance. The build is minified and the filenames include the hashes.
-
-### `npm run eject`
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project and copy all the configuration files and transitive dependencies right into your project.
 
 ## 📁 Project Structure
 
