@@ -1,14 +1,17 @@
 # VibeCheck 🎵✨
 
 VibeCheck is an interactive web application that helps users discover and explore different vibes, moods, or atmospheres. Whether you're looking to set the perfect mood for your day or discover new experiences, VibeCheck provides an intuitive interface to explore various vibes.
-
+![alt text](first.png)
 ## ✨ Features
-
-- **Interactive UI**: Modern, responsive design built with React
-- **Real-time Experience**: Dynamic content updates and interactions
-- **Mobile Friendly**: Fully responsive design that works on all devices
+- **Real-time Vibe Analysis**: Instant mood and sentiment detection
+- **Interactive UI**: Smooth, responsive user interface
+- **Social Integration**: Share vibes with friends and community
+- **Analytics Dashboard**: Track vibe patterns over time
+- **Mobile Responsive**: Works seamlessly across all devices
 - **Fast Performance**: Optimized React application with efficient rendering
 - **Easy Navigation**: Intuitive user interface for seamless experience
+![alt text](vibe.png)
+![alt text](features.png)
 
 ## 🛠 Tech Stack
 

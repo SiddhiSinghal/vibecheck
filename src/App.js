@@ -52,7 +52,7 @@ const achievements = [
 
 function TeamDashboard({ onClose, userName, userResult }) {
   const [teamCode, setTeamCode] = useState('');
-  const [setIsCreatingTeam] = useState(false);
+  const [isCreatingTeam,setIsCreatingTeam] = useState(false);
   const [currentTeam, setCurrentTeam] = useState(null);
   const [teams, setTeams] = useState([]);
 
@@ -1830,25 +1830,6 @@ const enhancedCss = `
   background-clip: text;
 }
 
-.close-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: #fff;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-size: 1.2rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1);
-}
 
 .achievement-list {
   display: flex;
