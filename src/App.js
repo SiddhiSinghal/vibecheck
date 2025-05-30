@@ -37,14 +37,14 @@ const achievements = [
     }
   },
   {
-    id: 'balanced_soul',
-    name: 'Balanced Soul',
-    description: 'Achieved a perfectly balanced result (25% each)!',
-    emoji: '⚖️',
+    id: 'butterfly_soul',
+    name: 'Butterfly Soul',
+    description: 'Achieved a Butterfly badge!',
+    emoji: '🦋',
     condition: (history) => {
       return history.some(h => {
         const percentages = Object.values(h.percentages);
-        return percentages.every(p => p === 25);
+        return percentages.some(p => p === 20 || p === 40);
       });
     }
   }
@@ -322,12 +322,10 @@ const App = () => {
   const [showAchievements, setShowAchievements] = useState(false);
   const [userAchievements, setUserAchievements] = useState([]);
 
-  // Load history from memory on component mount
   useEffect(() => {
     const memoryHistory = window.vibeCheckHistory || [];
     setQuizHistory(memoryHistory);
-    
-    // Load achievements
+
     const memoryAchievements = window.vibeCheckAchievements || [];
     setUserAchievements(memoryAchievements);
   }, []);
@@ -366,7 +364,7 @@ const App = () => {
       setUserAchievements(updatedAchievements);
       window.vibeCheckAchievements = updatedAchievements;
       
-      // Show achievement notification
+
       setTimeout(() => {
         setShareMessage(`🎉 New achievement unlocked: ${newAchievements[0].name}!`);
         setTimeout(() => setShareMessage(''), 4000);
@@ -454,7 +452,7 @@ const App = () => {
 
   const showComparisons = () => {
     if (quizHistory.length >= 2) {
-      setComparisonResults(quizHistory.slice(0, 5)); // Show last 5 results
+      setComparisonResults(quizHistory.slice(0, 5));
       setShowComparison(true);
     }
   };
