@@ -50,6 +50,282 @@ const achievements = [
   }
 ];
 
+function MoodDashboard({ history, onClose }) {
+  const getLast7Days = () => {
+    const today = new Date();
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      last7Days.push({
+        date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        fullDate: date.toDateString()
+      });
+    }
+    return last7Days;
+  };
+
+  const getMoodTrend = () => {
+    const last7Days = getLast7Days();
+    return last7Days.map(day => {
+      const dayResults = history.filter(h => {
+        const resultDate = new Date(h.timestamp || Date.now());
+        return resultDate.toDateString() === day.fullDate;
+      });
+      
+      if (dayResults.length === 0) {
+        return { ...day, vibe: null, emoji: '⭕', intensity: 0 };
+      }
+      
+      const latestResult = dayResults[0];
+      const vibe = vibeTypes[latestResult.primaryVibe];
+      return {
+        ...day,
+        vibe: latestResult.primaryVibe,
+        emoji: vibe.emoji,
+        intensity: Math.max(...Object.values(latestResult.percentages))
+      };
+    });
+  };
+
+  const getVibeInsights = () => {
+    if (history.length < 3) return null;
+    
+    const recentVibes = history.slice(0, 5).map(h => h.primaryVibe);
+    const vibeCounts = recentVibes.reduce((acc, vibe) => {
+      acc[vibe] = (acc[vibe] || 0) + 1;
+      return acc;
+    }, {});
+    
+    const dominantVibe = Object.keys(vibeCounts).reduce((a, b) => 
+      vibeCounts[a] > vibeCounts[b] ? a : b
+    );
+    
+    const trend = history.length >= 7 ? 
+      (history[0].percentages[dominantVibe] > history[6].percentages[dominantVibe] ? 'increasing' : 'decreasing') 
+      : 'stable';
+    
+    return { dominantVibe, trend };
+  };
+
+  const moodTrend = getMoodTrend();
+  const insights = getVibeInsights();
+
+  return (
+    <div className="achievement-overlay">
+      <div className="achievement-modal mood-dashboard">
+        <div className="achievement-header">
+          <h3>📊 Your Mood Dashboard</h3>
+          <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="mood-content">
+          <div className="mood-section">
+            <h4>7-Day Mood Trend</h4>
+            <div className="mood-timeline">
+              {moodTrend.map((day, index) => (
+                <div key={index} className="mood-day">
+                  <div className="mood-day-emoji" style={{
+                    fontSize: day.intensity ? `${Math.max(1.5, day.intensity / 30)}rem` : '1.5rem',
+                    opacity: day.intensity ? 1 : 0.3
+                  }}>
+                    {day.emoji}
+                  </div>
+                  <div className="mood-day-label">{day.date}</div>
+                  {day.intensity > 0 && (
+                    <div className="mood-intensity-bar">
+                      <div 
+                        className="mood-intensity-fill" 
+                        style={{
+                          width: `${day.intensity}%`,
+                          background: day.vibe ? vibeTypes[day.vibe].color : '#ccc'
+                        }}
+                      ></div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {insights && (
+            <div className="mood-section">
+              <h4>Mood Insights</h4>
+              <div className="mood-insights">
+                <div className="insight-card">
+                  <div className="insight-icon">{vibeTypes[insights.dominantVibe].emoji}</div>
+                  <div className="insight-content">
+                    <div className="insight-title">Dominant Vibe</div>
+                    <div className="insight-text">{vibeTypes[insights.dominantVibe].name}</div>
+                  </div>
+                </div>
+                <div className="insight-card">
+                  <div className="insight-icon">{insights.trend === 'increasing' ? '📈' : insights.trend === 'decreasing' ? '📉' : '➡️'}</div>
+                  <div className="insight-content">
+                    <div className="insight-title">Trend</div>
+                    <div className="insight-text">
+                      {insights.trend === 'increasing' ? 'Growing stronger' : 
+                       insights.trend === 'decreasing' ? 'Slightly declining' : 'Staying consistent'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="mood-section">
+            <h4>Vibe Distribution</h4>
+            <div className="vibe-distribution">
+              {Object.entries(vibeTypes).map(([key, vibe]) => {
+                const count = history.filter(h => h.primaryVibe === key).length;
+                const percentage = history.length > 0 ? Math.round((count / history.length) * 100) : 0;
+                return (
+                  <div key={key} className="distribution-item">
+                    <div className="distribution-icon">{vibe.emoji}</div>
+                    <div className="distribution-info">
+                      <div className="distribution-name">{vibe.name.replace('The ', '')}</div>
+                      <div className="distribution-bar">
+                        <div 
+                          className="distribution-fill" 
+                          style={{ width: `${percentage}%`, background: vibe.color }}
+                        ></div>
+                      </div>
+                      <div className="distribution-percent">{percentage}%</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VibeRecommendations({ result, onClose }) {
+  const getRecommendations = (vibe) => {
+    const recommendations = {
+      chill: {
+        activities: [
+          { emoji: '🧘‍♀️', title: 'Meditation Session', desc: 'Try a 10-minute mindfulness meditation' },
+          { emoji: '📚', title: 'Read a Book', desc: 'Dive into a calming fiction or self-help book' },
+          { emoji: '🌱', title: 'Indoor Plants', desc: 'Care for some plants to enhance your zen space' },
+          { emoji: '🍵', title: 'Tea Time', desc: 'Brew your favorite herbal tea and enjoy the moment' }
+        ],
+        tools: [
+          { name: 'Notion', desc: 'Organize your thoughts and projects calmly', icon: '📝' },
+          { name: 'Forest App', desc: 'Stay focused with peaceful productivity', icon: '🌲' },
+          { name: 'Calm', desc: 'Meditation and sleep stories', icon: '🌙' }
+        ],
+        workStyle: 'Take regular breaks, prefer quiet environments, and tackle complex problems with patience.'
+      },
+      energy: {
+        activities: [
+          { emoji: '🎵', title: 'Create Playlist', desc: 'Make an energizing coding playlist' },
+          { emoji: '💃', title: 'Dance Break', desc: 'Take 5-minute dance breaks between tasks' },
+          { emoji: '☕', title: 'Coffee Shop Work', desc: 'Work from a bustling coffee shop for energy' },
+          { emoji: '🎮', title: 'Gamify Tasks', desc: 'Turn your work into challenges and competitions' }
+        ],
+        tools: [
+          { name: 'Spotify', desc: 'High-energy playlists for coding', icon: '🎧' },
+          { name: 'Todoist', desc: 'Gamified task management', icon: '✅' },
+          { name: 'Discord', desc: 'Stay connected with your team', icon: '💬' }
+        ],
+        workStyle: 'Collaborate frequently, use time-boxing, and celebrate small wins to maintain momentum.'
+      },
+      thoughtful: {
+        activities: [
+          { emoji: '📊', title: 'Plan & Strategize', desc: 'Create detailed project roadmaps' },
+          { emoji: '🔍', title: 'Research Deep Dive', desc: 'Explore new technologies thoroughly' },
+          { emoji: '📖', title: 'Documentation', desc: 'Write comprehensive guides and docs' },
+          { emoji: '🧩', title: 'Problem Solving', desc: 'Tackle complex algorithms and architecture' }
+        ],
+        tools: [
+          { name: 'Obsidian', desc: 'Connected note-taking and knowledge management', icon: '🧠' },
+          { name: 'Figma', desc: 'Design and plan before coding', icon: '🎨' },
+          { name: 'Linear', desc: 'Structured project management', icon: '📋' }
+        ],
+        workStyle: 'Plan thoroughly before coding, document everything, and prefer detailed specifications.'
+      },
+      adventurous: {
+        activities: [
+          { emoji: '🚀', title: 'Try New Tech', desc: 'Experiment with the latest frameworks' },
+          { emoji: '🌍', title: 'Remote Work', desc: 'Code from different locations for inspiration' },
+          { emoji: '💡', title: 'Side Projects', desc: 'Build something completely different' },
+          { emoji: '🎯', title: 'Hackathons', desc: 'Join coding competitions and challenges' }
+        ],
+        tools: [
+          { name: 'GitHub Codespaces', desc: 'Code from anywhere with cloud environments', icon: '☁️' },
+          { name: 'Repl.it', desc: 'Quick prototyping and experimentation', icon: '⚡' },
+          { name: 'Product Hunt', desc: 'Discover new tools and get inspired', icon: '🔍' }
+        ],
+        workStyle: 'Embrace new technologies, take calculated risks, and don\'t be afraid to refactor boldly.'
+      }
+    };
+    
+    return recommendations[vibe] || recommendations.chill;
+  };
+
+  const recommendations = getRecommendations(result.primaryVibe);
+
+  return (
+    <div className="achievement-overlay">
+      <div className="achievement-modal recommendations-dashboard">
+        <div className="achievement-header">
+          <h3>💡 Personalized Recommendations</h3>
+          <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="recommendations-content">
+          <div className="rec-intro">
+            <div className="rec-vibe-icon">{vibeTypes[result.primaryVibe].emoji}</div>
+            <h4>Perfect for {result.name}</h4>
+            <p>Here are personalized suggestions to enhance your {result.name.toLowerCase()} energy!</p>
+          </div>
+          
+          <div className="rec-section">
+            <h4>🎯 Recommended Activities</h4>
+            <div className="activities-grid">
+              {recommendations.activities.map((activity, index) => (
+                <div key={index} className="activity-card">
+                  <div className="activity-emoji">{activity.emoji}</div>
+                  <div className="activity-content">
+                    <div className="activity-title">{activity.title}</div>
+                    <div className="activity-desc">{activity.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="rec-section">
+            <h4>🛠️ Recommended Tools</h4>
+            <div className="tools-list">
+              {recommendations.tools.map((tool, index) => (
+                <div key={index} className="tool-item">
+                  <div className="tool-icon">{tool.icon}</div>
+                  <div className="tool-content">
+                    <div className="tool-name">{tool.name}</div>
+                    <div className="tool-desc">{tool.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="rec-section">
+            <h4>💼 Work Style Tips</h4>
+            <div className="work-style-card">
+              <p>{recommendations.workStyle}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AchievementModal({ achievements, onClose }) {
   return (
     <div className="achievement-overlay">
@@ -321,6 +597,9 @@ const App = () => {
   const [comparisonResults, setComparisonResults] = useState([]);
   const [showAchievements, setShowAchievements] = useState(false);
   const [userAchievements, setUserAchievements] = useState([]);
+  const [showMoodDashboard, setShowMoodDashboard] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+
 
   useEffect(() => {
     const memoryHistory = window.vibeCheckHistory || [];
@@ -452,7 +731,7 @@ const App = () => {
 
   const showComparisons = () => {
     if (quizHistory.length >= 2) {
-      setComparisonResults(quizHistory.slice(0, 5));
+      setComparisonResults(quizHistory.slice(0, 5)); // Show last 5 results
       setShowComparison(true);
     }
   };
@@ -562,6 +841,8 @@ const App = () => {
     );
   }
 
+
+
   if (showResult) {
     return (
       <div className="plain-bg">
@@ -596,6 +877,36 @@ const App = () => {
           {shareMessage && (
             <div className="share-message">{shareMessage}</div>
           )}
+          <style>{enhancedCss}</style>
+          <button 
+            className="plain-btn secondary" 
+            onClick={() => setShowMoodDashboard(true)}
+          >
+          Mood Dashboard 📊
+          </button>
+          <style>{enhancedCss}</style>
+          <button 
+            className="plain-btn secondary" 
+            onClick={() => setShowRecommendations(true)}
+          >
+          Get Recommendations 💡
+          </button>
+          <style>{enhancedCss}</style>
+          {showMoodDashboard && (
+          <MoodDashboard 
+          history={quizHistory}
+          onClose={() => setShowMoodDashboard(false)}
+          />
+        )}
+
+        {showRecommendations && (
+        <VibeRecommendations 
+        result={result} 
+        onClose={() => setShowRecommendations(false)}
+        />
+      )}
+
+
           
           <div className="result-actions">
             <button className="plain-btn" onClick={resetQuiz}>
@@ -684,6 +995,558 @@ const App = () => {
 
 
 const enhancedCss = `
+/* Mood Dashboard & Recommendations CSS */
+
+/* Base overlay styling */
+.achievement-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal base styling */
+.achievement-modal {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(50px) scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Mood Dashboard Specific Styling */
+.mood-dashboard {
+  width: 800px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.recommendations-dashboard {
+  width: 700px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+/* Header styling */
+.achievement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25px 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.achievement-header h3 {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+/* Content areas */
+.mood-content,
+.recommendations-content {
+  padding: 30px;
+}
+
+/* Mood sections */
+.mood-section {
+  margin-bottom: 30px;
+}
+
+.mood-section h4 {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* 7-Day Mood Timeline */
+.mood-timeline {
+  display: flex;
+  gap: 15px;
+  align-items: end;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+}
+
+.mood-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.mood-day-emoji {
+  margin-bottom: 10px;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.mood-day-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.mood-intensity-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.mood-intensity-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s ease;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Mood Insights */
+.mood-insights {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.insight-card {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.insight-card:hover {
+  transform: translateY(-2px);
+}
+
+.insight-icon {
+  font-size: 2rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.insight-content {
+  flex: 1;
+}
+
+.insight-title {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.insight-text {
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Vibe Distribution */
+.vibe-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+}
+
+.distribution-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.distribution-icon {
+  font-size: 1.5rem;
+  width: 40px;
+  text-align: center;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
+}
+
+.distribution-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.distribution-name {
+  color: white;
+  font-weight: 600;
+  min-width: 80px;
+  font-size: 0.9rem;
+}
+
+.distribution-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.distribution-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.distribution-percent {
+  color: white;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+/* Recommendations Styling */
+.rec-intro {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 25px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+}
+
+.rec-vibe-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+}
+
+.rec-intro h4 {
+  color: white;
+  font-size: 1.3rem;
+  margin: 0 0 10px 0;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.rec-intro p {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-size: 1rem;
+}
+
+.rec-section {
+  margin-bottom: 30px;
+}
+
+.rec-section h4 {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Activities Grid */
+.activities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 15px;
+}
+
+.activity-card {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.activity-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.activity-emoji {
+  font-size: 1.8rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-title {
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 5px;
+}
+
+.activity-desc {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Tools List */
+.tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tool-item {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 18px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.tool-item:hover {
+  transform: translateX(5px);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tool-icon {
+  font-size: 1.5rem;
+  width: 40px;
+  text-align: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.tool-content {
+  flex: 1;
+}
+
+.tool-name {
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 3px;
+}
+
+.tool-desc {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+/* Work Style Card */
+.work-style-card {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 25px;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.work-style-card p {
+  color: white;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .mood-dashboard,
+  .recommendations-dashboard {
+    width: 95vw;
+    margin: 20px;
+  }
+  
+  .mood-content,
+  .recommendations-content {
+    padding: 20px;
+  }
+  
+  .mood-timeline {
+    gap: 8px;
+    padding: 15px;
+  }
+  
+  .mood-day-emoji {
+    font-size: 1.2rem !important;
+  }
+  
+  .mood-day-label {
+    font-size: 0.7rem;
+  }
+  
+  .mood-insights {
+    grid-template-columns: 1fr;
+  }
+  
+  .activities-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .achievement-header {
+    padding: 20px;
+  }
+  
+  .achievement-header h3 {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .mood-timeline {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .mood-day {
+    min-width: 60px;
+  }
+  
+  .distribution-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .distribution-name {
+    min-width: auto;
+  }
+  
+  .distribution-bar {
+    width: 100%;
+  }
+  
+  .activity-card,
+  .tool-item {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .activity-emoji,
+  .tool-icon {
+    margin-bottom: 10px;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .achievement-overlay,
+  .achievement-modal,
+  .mood-day-emoji,
+  .mood-intensity-fill,
+  .distribution-fill,
+  .activity-card,
+  .tool-item {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .achievement-modal {
+    border: 2px solid white;
+  }
+  
+  .mood-timeline,
+  .insight-card,
+  .vibe-distribution,
+  .activity-card,
+  .tool-item,
+  .work-style-card {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+}
+
+/* Print styles */
+@media print {
+  .achievement-overlay {
+    position: relative;
+    background: white;
+    color: black;
+  }
+  
+  .achievement-modal {
+    box-shadow: none;
+    background: white;
+    color: black;
+  }
+  
+  .close-btn {
+    display: none;
+  }
+}
 /* Achievement Modal Styles */
 .achievement-overlay {
   position: fixed;
