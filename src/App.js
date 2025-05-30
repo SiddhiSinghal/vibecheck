@@ -50,6 +50,227 @@ const achievements = [
   }
 ];
 
+function TeamDashboard({ onClose, userName, userResult }) {
+  const [teamCode, setTeamCode] = useState('');
+  const [setIsCreatingTeam] = useState(false);
+  const [currentTeam, setCurrentTeam] = useState(null);
+  const [teams, setTeams] = useState([]);
+
+  useEffect(() => {
+    const savedTeams = JSON.parse(localStorage.getItem('vibeCheckTeams')) || [];
+    setTeams(savedTeams);
+  }, []);
+
+  const generateTeamCode = () => {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  };
+
+  const createTeam = () => {
+    if (!userResult || !userName) return;
+    
+    const newTeamCode = generateTeamCode();
+    const newTeam = {
+      code: newTeamCode,
+      name: `${userName}'s Team`,
+      createdBy: userName,
+      members: [{
+        name: userName,
+        vibe: userResult.primaryVibe,
+        result: userResult,
+        joinedAt: Date.now()
+      }],
+      createdAt: Date.now()
+    };
+    
+    const updatedTeams = [...teams, newTeam];
+    setTeams(updatedTeams);
+    setCurrentTeam(newTeam);
+    // Save to localStorage
+    localStorage.setItem('vibeCheckTeams', JSON.stringify(updatedTeams));
+    setIsCreatingTeam(false);
+  };
+
+  const joinTeam = () => {
+    if (!teamCode || !userResult || !userName) return;
+    
+    const team = teams.find(t => t.code === teamCode.toUpperCase());
+    if (!team) {
+      alert('Team not found! Please check the code.');
+      return;
+    }
+    
+    const existingMember = team.members.find(m => m.name === userName);
+    if (existingMember) {
+      setCurrentTeam(team);
+      return;
+    }
+    
+    const updatedTeam = {
+      ...team,
+      members: [...team.members, {
+        name: userName,
+        vibe: userResult.primaryVibe,
+        result: userResult,
+        joinedAt: Date.now()
+      }]
+    };
+    
+    const updatedTeams = teams.map(t => t.code === team.code ? updatedTeam : t);
+    setTeams(updatedTeams);
+    setCurrentTeam(updatedTeam);
+    // Save to localStorage
+    localStorage.setItem('vibeCheckTeams', JSON.stringify(updatedTeams));
+    setTeamCode('');
+  };
+
+  const getTeamCompatibility = (team) => {
+    if (team.members.length < 2) return null;
+    
+    const vibeCompatibility = {
+      chill: ['thoughtful', 'chill'],
+      energy: ['adventurous', 'energy'],
+      thoughtful: ['chill', 'thoughtful'],
+      adventurous: ['energy', 'adventurous']
+    };
+    
+    let compatiblePairs = 0;
+    let totalPairs = 0;
+    
+    for (let i = 0; i < team.members.length; i++) {
+      for (let j = i + 1; j < team.members.length; j++) {
+        totalPairs++;
+        const vibe1 = team.members[i].vibe;
+        const vibe2 = team.members[j].vibe;
+        
+        if (vibeCompatibility[vibe1]?.includes(vibe2)) {
+          compatiblePairs++;
+        }
+      }
+    }
+    
+    return totalPairs > 0 ? Math.round((compatiblePairs / totalPairs) * 100) : 0;
+  };
+
+  if (currentTeam) {
+    const compatibility = getTeamCompatibility(currentTeam);
+    
+    return (
+      <div className="achievement-overlay">
+        <div className="achievement-modal team-dashboard">
+          <div className="achievement-header">
+            <h3>🤝 Team: {currentTeam.name}</h3>
+            <button className="close-btn" onClick={onClose}>×</button>
+          </div>
+          
+          <div className="team-content">
+            <div className="team-info">
+              <div className="team-code">Team Code: <strong>{currentTeam.code}</strong></div>
+              {compatibility !== null && (
+                <div className="team-compatibility">
+                  <div className="compatibility-score">
+                    Team Compatibility: <strong>{compatibility}%</strong>
+                    <div className="compatibility-bar">
+                      <div 
+                        className="compatibility-fill" 
+                        style={{ width: `${compatibility}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="team-members">
+              <h4>Team Members ({currentTeam.members.length})</h4>
+              <div className="members-grid">
+                {currentTeam.members.map((member, index) => (
+                  <div key={index} className="member-card">
+                    <div className="member-avatar">{vibeTypes[member.vibe].emoji}</div>
+                    <div className="member-info">
+                      <div className="member-name">{member.name}</div>
+                      <div className="member-vibe">{vibeTypes[member.vibe].name}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="team-actions">
+              <button 
+                className="plain-btn secondary" 
+                onClick={() => setCurrentTeam(null)}
+              >
+                Leave Team
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="achievement-overlay">
+      <div className="achievement-modal team-dashboard">
+        <div className="achievement-header">
+          <h3>🤝 Team Collaboration</h3>
+          <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="team-content">
+          <div className="team-section">
+            <h4>Create New Team</h4>
+            <p>Start a team and invite others to compare vibes!</p>
+            <button 
+              className="plain-btn" 
+              onClick={createTeam}
+              disabled={!userResult}
+            >
+              Create Team 🚀
+            </button>
+          </div>
+          
+          <div className="team-divider">OR</div>
+          
+          <div className="team-section">
+            <h4>Join Existing Team</h4>
+            <input
+              type="text"
+              placeholder="Enter team code"
+              value={teamCode}
+              onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
+              className="plain-input"
+              style={{ marginBottom: '12px' }}
+            />
+            <button 
+              className="plain-btn secondary" 
+              onClick={joinTeam}
+              disabled={!teamCode || !userResult}
+            >
+              Join Team 🤝
+            </button>
+          </div>
+          
+          {teams.length > 0 && (
+            <div className="team-section">
+              <h4>Your Teams</h4>
+              <div className="existing-teams">
+                {teams.map((team, index) => (
+                  <div key={index} className="team-item" onClick={() => setCurrentTeam(team)}>
+                    <div className="team-item-name">{team.name}</div>
+                    <div className="team-item-info">
+                      {team.members.length} members • {team.code}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 function MoodDashboard({ history, onClose }) {
   const getLast7Days = () => {
     const today = new Date();
@@ -599,7 +820,7 @@ const App = () => {
   const [userAchievements, setUserAchievements] = useState([]);
   const [showMoodDashboard, setShowMoodDashboard] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
-
+  const [showTeamDashboard, setShowTeamDashboard] = useState(false);
 
   useEffect(() => {
     const memoryHistory = window.vibeCheckHistory || [];
@@ -879,6 +1100,12 @@ const App = () => {
           )}
           <style>{enhancedCss}</style>
           <button 
+              className="plain-btn secondary" 
+              onClick={() => setShowTeamDashboard(true)}
+            >
+              Team Collaboration 🤝
+          </button>
+          <button 
             className="plain-btn secondary" 
             onClick={() => setShowMoodDashboard(true)}
           >
@@ -905,6 +1132,13 @@ const App = () => {
         onClose={() => setShowRecommendations(false)}
         />
       )}
+      {showTeamDashboard && (
+          <TeamDashboard
+            onClose={() => setShowTeamDashboard(false)}
+            userName={userName}
+            userResult={result}
+          />
+        )}
 
 
           
